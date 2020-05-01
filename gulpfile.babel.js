@@ -13,10 +13,9 @@ import pcssImport from 'postcss-import';
 import pcssInitial from 'postcss-initial';
 import webpack from 'webpack';
 
-import gulp, { dest, src, start, task, series, parallel } from 'gulp';
+import gulp from 'gulp';
 import gulpJade from 'gulp-jade';
 import rename from 'gulp-rename';
-import watch from 'gulp-watch';
 import { log, PluginError } from 'gulp-util';
 import jimp from 'gulp-jimp';
 import postcss from 'gulp-postcss';
@@ -57,18 +56,18 @@ const render = pipe(renderTweet, html);
  * MAIN TASKS
  */
 
-task('css', () =>
-  src('css/styles.css')
+const css = () =>
+  gulp.src('css/styles.css')
     .pipe(postcss([
       pcssImport,
       pcssInitial,
       autoprefixer,
     ]))
-    .pipe(dest('dist/css')));
+    .pipe(gulp.dest('dist/css'));
 
-task('index', series('css', () => {
+const index = () => {
   const authorsToPost = authors.filter(author => author.post !== false);
-  return src('layouts/index.jade')
+  return gulp.src('layouts/index.jade')
     .pipe(jade({
       locals: {
         title: `Сайт @${site.title}`,
@@ -79,12 +78,12 @@ task('index', series('css', () => {
       },
     }))
     .pipe(rename({ basename: 'index' }))
-    .pipe(dest('dist'));
-}));
+    .pipe(gulp.dest('dist'));
+};
 
-task('stats', series('css', () => {
+const stats = () => {
   const currentAuthor = head(authors.filter(author => author.post === false));
-  return src('layouts/stats.jade')
+  return gulp.src('layouts/stats.jade')
     .pipe(jade({
       locals: {
         title: `Статистика @${site.title}`,
@@ -98,13 +97,13 @@ task('stats', series('css', () => {
     }))
     .pipe(rename({ dirname: 'stats' }))
     .pipe(rename({ basename: 'index' }))
-    .pipe(dest('dist'));
-}));
+    .pipe(gulp.dest('dist'));
+};
 
-task('about', series('css', () => {
+const about = () => {
   const readme = fs.readFileSync('./pages/about.md', { encoding: 'utf8' });
   const article = articleData(readme, 'D MMMM YYYY', 'en'); // TODO change to 'ru' after moment/moment#2634 will be published
-  return src('layouts/article.jade')
+  return gulp.src('layouts/article.jade')
     .pipe(jade({
       locals: Object.assign({}, article, {
         title: 'О проекте',
@@ -114,13 +113,13 @@ task('about', series('css', () => {
     }))
     .pipe(rename({ dirname: 'about' }))
     .pipe(rename({ basename: 'index' }))
-    .pipe(dest('dist'));
-}));
+    .pipe(gulp.dest('dist'));
+};
 
-task('authoring', series('css', () => {
+const forAuthors = () => {
   const readme = fs.readFileSync('./pages/authoring.md', { encoding: 'utf8' });
   const article = articleData(readme, 'D MMMM YYYY', 'en'); // TODO change to 'ru' after moment/moment#2634 will be published
-  return src('layouts/article.jade')
+  return gulp.src('layouts/article.jade')
     .pipe(jade({
       locals: Object.assign({}, article, {
         title: 'Авторам',
@@ -130,13 +129,13 @@ task('authoring', series('css', () => {
     }))
     .pipe(rename({ dirname: 'authoring' }))
     .pipe(rename({ basename: 'index' }))
-    .pipe(dest('dist'));
-}));
+    .pipe(gulp.dest('dist'));
+};
 
-task('instruction', series('css', () => {
+const instruction = () => {
   const readme = fs.readFileSync('./pages/instruction.md', { encoding: 'utf8' });
   const article = articleData(readme, 'D MMMM YYYY', 'en'); // TODO change to 'ru' after moment/moment#2634 will be published
-  return src('layouts/article.jade')
+  return gulp.src('layouts/article.jade')
     .pipe(jade({
       locals: Object.assign({}, article, {
         title: 'Инструкция',
@@ -146,13 +145,13 @@ task('instruction', series('css', () => {
     }))
     .pipe(rename({ dirname: 'instruction' }))
     .pipe(rename({ basename: 'index' }))
-    .pipe(dest('dist'));
-}));
+    .pipe(gulp.dest('dist'));
+};
 
-task('map', series('css', () => {
+const map = () => {
   const currentAuthor = head(authors.filter(author => author.post === false));
   const authorsToPost = authors.filter(author => author.post !== false);
-  return src('layouts/map.jade')
+  return gulp.src('layouts/map.jade')
     .pipe(jade({
       locals: {
         title: `Карта @${site.title}`,
@@ -165,13 +164,13 @@ task('map', series('css', () => {
     }))
     .pipe(rename({ dirname: 'map' }))
     .pipe(rename({ basename: 'index' }))
-    .pipe(dest('dist'));
-}));
+    .pipe(gulp.dest('dist'));
+};
 
-task('authors', series('css', done => {
+const authorsArchives = done => {
   const authorsToPost = authors.filter(author => author.post !== false);
   each(authorsToPost, author => {
-    return src('./layouts/author.jade')
+    return gulp.src('./layouts/author.jade')
       .pipe(jade({
         pretty: true,
         locals: {
@@ -182,69 +181,75 @@ task('authors', series('css', done => {
       }))
       .pipe(rename({ dirname: author.username }))
       .pipe(rename({ basename: 'index' }))
-      .pipe(dest('dist'));
+      .pipe(gulp.dest('dist'));
   }, done);
-}));
+};
 
-task('userpics', () =>
-  src('dump/images/*-image*')
+const userpics = () =>
+  gulp.src('dump/images/*-image*')
     .pipe(jimp({ resize: { width: 192, height: 192 } }))
-    .pipe(dest('dist/images')));
+    .pipe(gulp.dest('dist/images'));
 
-task('banners', () =>
-  src('dump/images/*-banner*')
-    .pipe(dest('dist/images')));
+const banners = () =>
+  gulp.src('dump/images/*-banner*')
+    .pipe(gulp.dest('dist/images'));
 
-task('current-userpic', () =>
-  src(`dump/images/${head(authors).username}-image*`)
+const currentUserpic = () =>
+  gulp.src(`dump/images/${head(authors).username}-image*`)
     .pipe(jimp({ resize: { width: 192, height: 192 } }))
     .pipe(rename('current-image'))
-    .pipe(dest('dist/images')));
+    .pipe(gulp.dest('dist/images'));
 
-task('current-banner', () =>
-  src(`dump/images/${head(authors).username}-banner*`)
+const currentBanner = () =>
+  gulp.src(`dump/images/${head(authors).username}-banner*`)
     .pipe(rename('current-banner'))
-    .pipe(dest('dist/images')));
+    .pipe(gulp.dest('dist/images'));
 
-task('current-media', series('current-userpic', 'current-banner'));
+const currentMedia = gulp.series(currentUserpic, currentBanner);
 
-task('js', done => {
+const js = done => {
   webpack(webpackConfig, (err, stats) => {
     if (err) throw new PluginError('webpack', err);
     done();
   });
-});
+};
 
-task('static', () =>
-  src([
+const staticPages = () =>
+  gulp.src([
     'static/**',
     'static/.**',
     'node_modules/bootstrap/dist/**',
-  ]).pipe(dest('dist')));
+  ]).pipe(gulp.dest('dist'));
 
-task('server', () => {
+const server = () => {
   const app = express();
   app.use(express.static('dist'));
   app.listen(4000);
   log('Server is running on http://localhost:4000');
-});
+};
 
 /**
  * FLOW
  */
-task('clean', done => rimraf('dist', done));
+const htmlPages = gulp.series(css, gulp.parallel(stats, authorsArchives, index, map, about, forAuthors, instruction));
 
-task('html', series('stats', 'authors', 'index', 'map', 'about', 'authoring', 'instruction'));
-task('build', series('css', 'js', 'static', 'stats', 'html', 'userpics', 'banners', 'current-media'));
+const build = gulp.series(css, js, staticPages, stats, htmlPages, userpics, banners, currentMedia);
 
-task('watch', parallel('server', 'build', () => {
-  watch(['**/*.jade'], series('html'));
-  watch(['css/**/*.css'], series('css'));
-  watch('js/**/*.js', series('js'));
-  watch('static/**', series('static'));
-}));
+const watchers = () => {
+  gulp.watch(['**/*.jade'], htmlPages);
+  gulp.watch(['css/**/*.css'], css);
+  gulp.watch('js/**/*.js', js);
+  gulp.watch('static/**', staticPages);
+}
 
-task('default', series('clean', 'watch'));
+const watch = gulp.parallel(server, gulp.series(build, watchers));
 
-task('deploy', gulp.series('build'), done =>
-  buildbranch({ branch: 'gh-pages', folder: 'dist' }, done));
+const clean = done => rimraf('dist', done);
+
+exports.clean = clean;
+
+exports.build = build;
+
+exports.deploy = gulp.series(build, () => buildbranch({ branch: 'gh-pages', folder: 'dist' }));
+
+exports.default = gulp.series(clean, watch);
